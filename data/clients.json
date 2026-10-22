@@ -1,0 +1,501 @@
+{
+  "clients": [
+    {
+      "name_en": "DAMAC",
+      "name_ar": "داماك",
+      "sector": "Real estate",
+      "location_en": "",
+      "location_ar": ""
+    },
+    {
+      "name_en": "Emirates Post Group",
+      "name_ar": "مجموعة بريد الإمارات",
+      "sector": "Government",
+      "location_en": "",
+      "location_ar": ""
+    },
+    {
+      "name_en": "Dubai Health Authority",
+      "name_ar": "هيئة الصحة بدبي",
+      "sector": "Healthcare",
+      "location_en": "",
+      "location_ar": ""
+    },
+    {
+      "name_en": "Emirates Health Services",
+      "name_ar": "مؤسسة الإمارات للخدمات الصحية",
+      "sector": "Healthcare",
+      "location_en": "",
+      "location_ar": ""
+    },
+    {
+      "name_en": "Taaleem",
+      "name_ar": "تعليم",
+      "sector": "Education",
+      "location_en": "",
+      "location_ar": ""
+    },
+    {
+      "name_en": "Higher Colleges of Technology",
+      "name_ar": "كليات التقنية العليا",
+      "sector": "Education",
+      "location_en": "",
+      "location_ar": ""
+    },
+    {
+      "name_en": "Medcare",
+      "name_ar": "ميدكير",
+      "sector": "Healthcare",
+      "location_en": "",
+      "location_ar": ""
+    },
+    {
+      "name_en": "Aster Clinic",
+      "name_ar": "عيادة أستر",
+      "sector": "Healthcare",
+      "location_en": "",
+      "location_ar": ""
+    },
+    {
+      "name_en": "Dubai Taxi Company",
+      "name_ar": "شركة تاكسي دبي",
+      "sector": "Transport",
+      "location_en": "",
+      "location_ar": ""
+    },
+    {
+      "name_en": "Radisson Hotel Group",
+      "name_ar": "Radisson Hotel Group",
+      "sector": "Hospitality",
+      "location_en": "",
+      "location_ar": ""
+    },
+    {
+      "name_en": "Al Naboodah",
+      "name_ar": "Al Naboodah",
+      "sector": "Construction",
+      "location_en": "",
+      "location_ar": ""
+    },
+    {
+      "name_en": "Al Ghurair Construction",
+      "name_ar": "Al Ghurair Construction",
+      "sector": "Construction",
+      "location_en": "",
+      "location_ar": ""
+    },
+    {
+      "name_en": "Kalba Hospital",
+      "name_ar": "Kalba Hospital",
+      "sector": "Healthcare",
+      "location_en": "Sharjah",
+      "location_ar": "الشارقة"
+    },
+    {
+      "name_en": "Dhaid Hospital",
+      "name_ar": "Dhaid Hospital",
+      "sector": "Healthcare",
+      "location_en": "Sharjah",
+      "location_ar": "الشارقة"
+    },
+    {
+      "name_en": "Nazwa Health Center",
+      "name_ar": "Nazwa Health Center",
+      "sector": "Healthcare",
+      "location_en": "Sharjah",
+      "location_ar": "الشارقة"
+    },
+    {
+      "name_en": "Khorfakkan Health Center",
+      "name_ar": "Khorfakkan Health Center",
+      "sector": "Healthcare",
+      "location_en": "Sharjah",
+      "location_ar": "الشارقة"
+    },
+    {
+      "name_en": "Al Madam Health Center",
+      "name_ar": "Al Madam Health Center",
+      "sector": "Healthcare",
+      "location_en": "Sharjah",
+      "location_ar": "الشارقة"
+    },
+    {
+      "name_en": "Kalba Preventive Medicine Center",
+      "name_ar": "Kalba Preventive Medicine Center",
+      "sector": "Healthcare",
+      "location_en": "Sharjah",
+      "location_ar": "الشارقة"
+    },
+    {
+      "name_en": "Qassimi Hospital",
+      "name_ar": "Qassimi Hospital",
+      "sector": "Healthcare",
+      "location_en": "Sharjah",
+      "location_ar": "الشارقة"
+    },
+    {
+      "name_en": "Shaam Hospital",
+      "name_ar": "Shaam Hospital",
+      "sector": "Healthcare",
+      "location_en": "Ras Al Khaimah",
+      "location_ar": "رأس الخيمة"
+    },
+    {
+      "name_en": "Abdullah Bin Omran Hospital",
+      "name_ar": "Abdullah Bin Omran Hospital",
+      "sector": "Healthcare",
+      "location_en": "Ras Al Khaimah",
+      "location_ar": "رأس الخيمة"
+    },
+    {
+      "name_en": "Saqar Hospital",
+      "name_ar": "Saqar Hospital",
+      "sector": "Healthcare",
+      "location_en": "Ras Al Khaimah",
+      "location_ar": "رأس الخيمة"
+    },
+    {
+      "name_en": "Preventive Medicine",
+      "name_ar": "Preventive Medicine",
+      "sector": "Healthcare",
+      "location_en": "Fujairah",
+      "location_ar": "الفجيرة"
+    },
+    {
+      "name_en": "Madina PHC",
+      "name_ar": "Madina PHC",
+      "sector": "Healthcare",
+      "location_en": "Fujairah",
+      "location_ar": "الفجيرة"
+    },
+    {
+      "name_en": "Al-Faseel Family Health Promotion Center",
+      "name_ar": "Al-Faseel Family Health Promotion Center",
+      "sector": "Healthcare",
+      "location_en": "Fujairah",
+      "location_ar": "الفجيرة"
+    },
+    {
+      "name_en": "Khulabiya PHC",
+      "name_ar": "Khulabiya PHC",
+      "sector": "Healthcare",
+      "location_en": "Fujairah",
+      "location_ar": "الفجيرة"
+    },
+    {
+      "name_en": "Various Post Office Sites",
+      "name_ar": "Various Post Office Sites",
+      "sector": "Government",
+      "location_en": "Dubai, Northern Emirates, Abu Dhabi & Al Ain",
+      "location_ar": "دبي والإمارات الشمالية وأبوظبي والعين"
+    },
+    {
+      "name_en": "Dubai Police — Various Locations",
+      "name_ar": "Dubai Police — Various Locations",
+      "sector": "Government",
+      "location_en": "Dubai",
+      "location_ar": "دبي"
+    },
+    {
+      "name_en": "Ministry of Interior Buildings",
+      "name_ar": "Ministry of Interior Buildings",
+      "sector": "Government",
+      "location_en": "Dubai, Northern Emirates, Abu Dhabi & Al Ain",
+      "location_ar": "دبي والإمارات الشمالية وأبوظبي والعين"
+    },
+    {
+      "name_en": "Federal Authority of Identity & Citizenship",
+      "name_ar": "Federal Authority of Identity & Citizenship",
+      "sector": "Government",
+      "location_en": "Dubai, Abu Dhabi, Al Ain & Northern Emirates",
+      "location_ar": "دبي وأبوظبي والعين والإمارات الشمالية"
+    },
+    {
+      "name_en": "Ministry of Economy",
+      "name_ar": "Ministry of Economy",
+      "sector": "Government",
+      "location_en": "UAE",
+      "location_ar": "الإمارات العربية المتحدة"
+    },
+    {
+      "name_en": "Ministry of Climate Change and Environment",
+      "name_ar": "Ministry of Climate Change and Environment",
+      "sector": "Government",
+      "location_en": "UAE",
+      "location_ar": "الإمارات العربية المتحدة"
+    },
+    {
+      "name_en": "Ministry of Health",
+      "name_ar": "Ministry of Health",
+      "sector": "Government",
+      "location_en": "UAE",
+      "location_ar": "الإمارات العربية المتحدة"
+    },
+    {
+      "name_en": "Ministry of Human Resource",
+      "name_ar": "Ministry of Human Resource",
+      "sector": "Government",
+      "location_en": "UAE",
+      "location_ar": "الإمارات العربية المتحدة"
+    },
+    {
+      "name_en": "Sultan Bin Ali Al Owais Real Estate LLC",
+      "name_ar": "Sultan Bin Ali Al Owais Real Estate LLC",
+      "sector": "Real estate",
+      "location_en": "Dubai",
+      "location_ar": "دبي"
+    },
+    {
+      "name_en": "Skook Real Estate",
+      "name_ar": "Skook Real Estate",
+      "sector": "Real estate",
+      "location_en": "Dubai",
+      "location_ar": "دبي"
+    },
+    {
+      "name_en": "Al Samail Real Estate",
+      "name_ar": "Al Samail Real Estate",
+      "sector": "Real estate",
+      "location_en": "Dubai",
+      "location_ar": "دبي"
+    },
+    {
+      "name_en": "Deira Orient Real Estate",
+      "name_ar": "Deira Orient Real Estate",
+      "sector": "Real estate",
+      "location_en": "Dubai",
+      "location_ar": "دبي"
+    },
+    {
+      "name_en": "Maqar Al Aman Real Estate",
+      "name_ar": "Maqar Al Aman Real Estate",
+      "sector": "Real estate",
+      "location_en": "Abu Dhabi",
+      "location_ar": "أبوظبي"
+    },
+    {
+      "name_en": "Al Baz Real Estate",
+      "name_ar": "Al Baz Real Estate",
+      "sector": "Real estate",
+      "location_en": "Abu Dhabi",
+      "location_ar": "أبوظبي"
+    },
+    {
+      "name_en": "Al Rowaa Real Estate LLC — Abu Dhabi Branch",
+      "name_ar": "Al Rowaa Real Estate LLC — Abu Dhabi Branch",
+      "sector": "Real estate",
+      "location_en": "Abu Dhabi",
+      "location_ar": "أبوظبي"
+    },
+    {
+      "name_en": "Al Makhawi Real Estate",
+      "name_ar": "Al Makhawi Real Estate",
+      "sector": "Real estate",
+      "location_en": "Abu Dhabi",
+      "location_ar": "أبوظبي"
+    },
+    {
+      "name_en": "Al Bonian Facilities Management Services LLC",
+      "name_ar": "Al Bonian Facilities Management Services LLC",
+      "sector": "Facilities",
+      "location_en": "UAE",
+      "location_ar": "الإمارات العربية المتحدة"
+    },
+    {
+      "name_en": "Bloom Facilities Management",
+      "name_ar": "Bloom Facilities Management",
+      "sector": "Facilities",
+      "location_en": "Dubai",
+      "location_ar": "دبي"
+    },
+    {
+      "name_en": "Reliance Facilities Management LLC",
+      "name_ar": "Reliance Facilities Management LLC",
+      "sector": "Facilities",
+      "location_en": "UAE",
+      "location_ar": "الإمارات العربية المتحدة"
+    },
+    {
+      "name_en": "Al Benaa Alshamel Facilities Management Co LLC",
+      "name_ar": "Al Benaa Alshamel Facilities Management Co LLC",
+      "sector": "Facilities",
+      "location_en": "UAE",
+      "location_ar": "الإمارات العربية المتحدة"
+    },
+    {
+      "name_en": "Inspire Integrated Facilities Management",
+      "name_ar": "Inspire Integrated Facilities Management",
+      "sector": "Facilities",
+      "location_en": "Abu Dhabi",
+      "location_ar": "أبوظبي"
+    },
+    {
+      "name_en": "Al Futtaim Engineering",
+      "name_ar": "Al Futtaim Engineering",
+      "sector": "Facilities",
+      "location_en": "UAE",
+      "location_ar": "الإمارات العربية المتحدة"
+    },
+    {
+      "name_en": "Enova Facilities Management Services LLC",
+      "name_ar": "Enova Facilities Management Services LLC",
+      "sector": "Facilities",
+      "location_en": "Abu Dhabi",
+      "location_ar": "أبوظبي"
+    },
+    {
+      "name_en": "Amity International School",
+      "name_ar": "Amity International School",
+      "sector": "Education",
+      "location_en": "Dubai",
+      "location_ar": "دبي"
+    },
+    {
+      "name_en": "Global Indian International School",
+      "name_ar": "Global Indian International School",
+      "sector": "Education",
+      "location_en": "Abu Dhabi",
+      "location_ar": "أبوظبي"
+    },
+    {
+      "name_en": "The Philippine School",
+      "name_ar": "The Philippine School",
+      "sector": "Education",
+      "location_en": "Dubai",
+      "location_ar": "دبي"
+    },
+    {
+      "name_en": "Mushairif School C1",
+      "name_ar": "Mushairif School C1",
+      "sector": "Education",
+      "location_en": "Ajman",
+      "location_ar": "عجمان"
+    },
+    {
+      "name_en": "Al Maeried School C1",
+      "name_ar": "Al Maeried School C1",
+      "sector": "Education",
+      "location_en": "Ras Al Khaimah",
+      "location_ar": "رأس الخيمة"
+    },
+    {
+      "name_en": "Imdaad LLC",
+      "name_ar": "Imdaad LLC",
+      "sector": "Maintenance",
+      "location_en": "Annual maintenance",
+      "location_ar": "الصيانة السنوية"
+    },
+    {
+      "name_en": "Al Sultan Electromechanical",
+      "name_ar": "Al Sultan Electromechanical",
+      "sector": "Maintenance",
+      "location_en": "Annual maintenance",
+      "location_ar": "الصيانة السنوية"
+    },
+    {
+      "name_en": "Khidmah Sole Proprietorship LLC",
+      "name_ar": "Khidmah Sole Proprietorship LLC",
+      "sector": "Maintenance",
+      "location_en": "Annual maintenance",
+      "location_ar": "الصيانة السنوية"
+    },
+    {
+      "name_en": "Landmark Group",
+      "name_ar": "Landmark Group",
+      "sector": "Maintenance",
+      "location_en": "Annual maintenance",
+      "location_ar": "الصيانة السنوية"
+    },
+    {
+      "name_en": "Al Shafar General Contracting (ASGC)",
+      "name_ar": "الشعفار للمقاولات العامة (ASGC)",
+      "sector": "Maintenance",
+      "location_en": "Annual maintenance",
+      "location_ar": "الصيانة السنوية"
+    },
+    {
+      "name_en": "M.B.H Properties",
+      "name_ar": "M.B.H Properties",
+      "sector": "Real estate",
+      "location_en": "",
+      "location_ar": ""
+    },
+    {
+      "name_en": "Emirates Schools Establishment",
+      "name_ar": "Emirates Schools Establishment",
+      "sector": "Education",
+      "location_en": "",
+      "location_ar": ""
+    },
+    {
+      "name_en": "Khansaheb Civil Engineering",
+      "name_ar": "Khansaheb Civil Engineering",
+      "sector": "Construction",
+      "location_en": "",
+      "location_ar": ""
+    },
+    {
+      "name_en": "Al Jaber Group",
+      "name_ar": "مجموعة الجابر",
+      "sector": "Construction",
+      "location_en": "Mussafah, Abu Dhabi",
+      "location_ar": "مصفح، أبوظبي"
+    },
+    {
+      "name_en": "SBK Real Estate",
+      "name_ar": "SBK Real Estate",
+      "sector": "Real estate",
+      "location_en": "",
+      "location_ar": ""
+    },
+    {
+      "name_en": "Bin Shafar Contracting LLC",
+      "name_ar": "Bin Shafar Contracting LLC",
+      "sector": "Construction",
+      "location_en": "",
+      "location_ar": ""
+    },
+    {
+      "name_en": "LIFE Pharmacy",
+      "name_ar": "صيدلية لايف",
+      "sector": "Healthcare",
+      "location_en": "",
+      "location_ar": ""
+    },
+    {
+      "name_en": "The Galleria Al Maryah Island",
+      "name_ar": "الغاليريا جزيرة الماريه",
+      "sector": "Retail",
+      "location_en": "Abu Dhabi",
+      "location_ar": "أبوظبي"
+    },
+    {
+      "name_en": "Holiday Inn by IHG",
+      "name_ar": "Holiday Inn by IHG",
+      "sector": "Hospitality",
+      "location_en": "",
+      "location_ar": ""
+    },
+    {
+      "name_en": "Mirdif American School",
+      "name_ar": "Mirdif American School",
+      "sector": "Education",
+      "location_en": "",
+      "location_ar": ""
+    },
+    {
+      "name_en": "Landmark Arabia",
+      "name_ar": "لاندمارك العربية",
+      "sector": "Retail",
+      "location_en": "",
+      "location_ar": ""
+    },
+    {
+      "name_en": "Al Maya Group",
+      "name_ar": "مجموعة المايا",
+      "sector": "Retail",
+      "location_en": "",
+      "location_ar": ""
+    }
+  ]
+}

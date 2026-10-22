@@ -1,0 +1,46 @@
+backend:
+  name: github
+  repo: Ebrahim-66/fireco-web
+  branch: main
+
+site_url: https://firecots.com
+display_url: https://firecots.com
+logo_url: /fireco-logo.svg
+publish_mode: simple
+media_folder: uploads
+public_folder: /uploads
+
+collections:
+  - name: website_data
+    label: Website Content
+    files:
+      - name: clients
+        label: Clients and Project References
+        file: data/clients.json
+        format: json
+        fields:
+          - label: Clients
+            name: clients
+            widget: list
+            summary: "{{fields.name_en}} — {{fields.sector}}"
+            fields:
+              - {label: English name, name: name_en, widget: string}
+              - {label: Arabic name, name: name_ar, widget: string, required: false}
+              - label: Sector
+                name: sector
+                widget: select
+                options: [Healthcare, Government, Real estate, Facilities, Education, Maintenance, Transport, Hospitality, Construction, Retail]
+              - {label: English location, name: location_en, widget: string, required: false}
+              - {label: Arabic location, name: location_ar, widget: string, required: false}
+      - name: company_profile
+        label: Company Profile PDF
+        file: data/settings.json
+        format: json
+        fields:
+          - label: Current profile PDF
+            name: profile_pdf
+            widget: file
+            allow_multiple: false
+            media_library:
+              config:
+                multiple: false

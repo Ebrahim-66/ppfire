@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://firecots.com/sitemap.xml

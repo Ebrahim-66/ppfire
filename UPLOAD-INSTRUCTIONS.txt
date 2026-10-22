@@ -1,0 +1,50 @@
+FIRECO — RESTORE THE ARABIC PAGES
+
+The public English homepage and CSS match the latest website package.
+Public checks found the English homepage and English service page working,
+while /ar/, /ar/index.html and /ar/fire-alarm-systems.html returned 404.
+The Arabic files are included in the original ZIP but appear absent from
+the deployed site. This download restores that folder without changing content.
+
+1. Extract this ZIP.
+2. Open the same GitHub repository connected to fireco-web.vercel.app.
+3. Choose Add file -> Upload files.
+4. Drag the WHOLE ar folder from the extracted ZIP into GitHub's upload area.
+   Keep the folder name ar, in lowercase. Do not upload its individual files
+   at the repository root, because the Arabic index.html would replace English.
+5. Confirm GitHub lists ar/index.html and the six other ar/*.html files.
+6. Save the upload with a commit message such as Restore Arabic pages.
+7. Wait for the connected Vercel deployment to finish, then open:
+   https://fireco-web.vercel.app/ar/index.html
+
+Required repository layout:
+
+index.html                  English homepage (already present)
+site.css                    Shared styling (already present)
+site.js                     Shared script (already present)
+ar/
+  index.html                Arabic homepage
+  fire-alarm-systems.html
+  firefighting-systems.html
+  sprinkler-systems.html
+  fire-extinguishers.html
+  emergency-lighting.html
+  maintenance.html
+
+All seven files must stay inside ar/, next to the English pages' folder.
+No price list, prices or extra private source files are included.
+
+If ar/index.html is already in your repository but still returns 404 after
+deployment, check the Vercel production branch and output folder. The folder
+being published must contain both the English index.html and the ar folder.
+This is a static multipage site; an SPA catch-all rewrite is not needed.
+
+Official upload guide:
+https://docs.github.com/en/repositories/working-with-files/managing-files/adding-a-file-to-a-repository
+
+تعليمات بالعربية
+
+فك ضغط الملف، ثم افتح مستودع GitHub المرتبط بموقع Vercel.
+ارفع مجلد ar كاملًا بجانب ملف index.html الإنجليزي، مع إبقاء اسم المجلد
+بالأحرف الصغيرة. تأكد من ظهور المسار ar/index.html في قائمة الملفات.
+احفظ التغييرات وانتظر اكتمال نشر Vercel، ثم افتح رابط الصفحة العربية أعلاه.

@@ -1,0 +1,7 @@
+FIRECO — UPLOAD TO GITHUB IN SMALL BATCHES
+
+Upload the three ZIPs one at a time to the same repository. For each ZIP: extract it, open GitHub > Add file > Upload files, drag the extracted contents (not the ZIP) into the upload area, and commit. Keep all folders in their original locations. Upload in order: 1 Core, 2 Assets, 3 Clients. The website is complete after all three commits.
+
+فايركو — الرفع إلى GitHub على دفعات
+
+ارفع ملفات ZIP الثلاثة واحداً تلو الآخر إلى المستودع نفسه. لكل ملف: فك الضغط، ثم في GitHub اختر Add file > Upload files، واسحب الملفات والمجلدات المستخرجة (وليس ملف ZIP) إلى صفحة الرفع، ثم احفظ commit. حافظ على مسارات المجلدات. الترتيب: 1 الملفات الأساسية، 2 الصور والملفات، 3 شعارات العملاء. يكتمل الموقع بعد رفع الدفعات الثلاث.
