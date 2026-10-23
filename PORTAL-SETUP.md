@@ -1,5 +1,11 @@
 # FIRECO Portal deployment setup
 
+## Current project status
+
+The `ppfire` project has a Neon Postgres database, a private Vercel Blob store, and a Resend email resource connected. Production session and bootstrap account secrets are set in Vercel. The generated initial login details are stored only on the owner's computer in `.env.portal-credentials.local`, which is excluded from Git.
+
+Resend cannot send from `firecots.com` until the domain's DNS records are verified. Set `EMAIL_FROM` only after verification, then redeploy. Until then, enquiries and applications are saved in the portal, but email notifications are unavailable. The portal allows sign-in when its database, private storage, session secret, and account secrets are ready; `/api/portal/health` reports full readiness only after email is configured too.
+
 The website builds with `pnpm install --frozen-lockfile` and `pnpm run build`. The secure admin portal is served at `/adminportal` and uses a Vercel Node.js function at `/api/portal/*`.
 
 ## Required Vercel resources
