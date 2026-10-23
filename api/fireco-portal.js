@@ -157,7 +157,7 @@ async function main(req, res) {
   }
   if (path === 'health' && method === 'GET') {
     const config = { database: Boolean(process.env.DATABASE_URL), blob: Boolean(process.env.BLOB_READ_WRITE_TOKEN), email: Boolean(process.env.RESEND_API_KEY && process.env.EMAIL_FROM), session: Boolean(process.env.PORTAL_SESSION_SECRET && process.env.PORTAL_SESSION_SECRET.length >= 32), accounts: Boolean(process.env.PORTAL_MANAGER_PASSWORD?.length >= 12 && process.env.PORTAL_ADMIN_PASSWORD?.length >= 12) };
-    return json(res, 200, { ready: Object.values(config).every(Boolean), config });
+    return json(res, 200, { ready: ['database', 'blob', 'session', 'accounts'].every(key => config[key]), notificationsReady: config.email, config });
   }
   await ensureSchema();
   if (path === 'public/clients' && method === 'GET') {
