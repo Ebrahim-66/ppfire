@@ -407,9 +407,9 @@
       "location_ar": "الصيانة السنوية"
     },
     {
-      "name_en": "Al Shafar General Contracting (ASGC)",
-      "name_ar": "الشعفار للمقاولات العامة (ASGC)",
-      "sector": "Maintenance",
+      "name_en": "ASGC Construction",
+      "name_ar": "إيه إس جي سي للإنشاءات",
+      "sector": "Construction",
       "location_en": "Annual maintenance",
       "location_ar": "الصيانة السنوية"
     },
@@ -494,6 +494,104 @@
       "name_en": "Al Maya Group",
       "name_ar": "مجموعة المايا",
       "sector": "Retail",
+      "location_en": "",
+      "location_ar": ""
+    },
+    {
+      "name_en": "Al Sayer Retail Co",
+      "name_ar": "شركة الساير للتجزئة",
+      "sector": "Retail",
+      "location_en": "",
+      "location_ar": ""
+    },
+    {
+      "name_en": "Emirates International Facility Management",
+      "name_ar": "الإمارات العالمية لإدارة المرافق",
+      "sector": "Facilities",
+      "location_en": "",
+      "location_ar": ""
+    },
+    {
+      "name_en": "ASGENCO Group",
+      "name_ar": "مجموعة أسجينكو",
+      "sector": "Construction",
+      "location_en": "",
+      "location_ar": ""
+    },
+    {
+      "name_en": "NTCC",
+      "name_ar": "إن تي سي سي",
+      "sector": "Construction",
+      "location_en": "",
+      "location_ar": ""
+    },
+    {
+      "name_en": "Al Najah School",
+      "name_ar": "مدرسة النجاح",
+      "sector": "Education",
+      "location_en": "",
+      "location_ar": ""
+    },
+    {
+      "name_en": "Burjeel Hospital",
+      "name_ar": "مستشفى برجيل",
+      "sector": "Healthcare",
+      "location_en": "",
+      "location_ar": ""
+    },
+    {
+      "name_en": "Relaam Real Estate",
+      "name_ar": "رِلام العقارية",
+      "sector": "Real estate",
+      "location_en": "",
+      "location_ar": ""
+    },
+    {
+      "name_en": "SMOU Real Estate",
+      "name_ar": "إس إم أو للعقارات",
+      "sector": "Real estate",
+      "location_en": "",
+      "location_ar": ""
+    },
+    {
+      "name_en": "Latifa & Shamma Bint Khalifa Al Nehyan Properties",
+      "name_ar": "عقارات لطيفة وشمة بنت خليفة آل نهيان",
+      "sector": "Real estate",
+      "location_en": "",
+      "location_ar": ""
+    },
+    {
+      "name_en": "ASTECO Property Management",
+      "name_ar": "أستيكو لإدارة العقارات",
+      "sector": "Real estate",
+      "location_en": "",
+      "location_ar": ""
+    },
+    {
+      "name_en": "Kabi Mobility",
+      "name_ar": "كابي للتنقل",
+      "sector": "Transport",
+      "location_en": "",
+      "location_ar": ""
+    },
+    {
+      "name_en": "AG Cars",
+      "name_ar": "إيه جي للسيارات",
+      "sector": "Transport",
+      "location_en": "",
+      "location_ar": ""
+    },
+    {
+      "name_en": "Platinum Taxi",
+      "name_ar": "بلاتينيوم تاكسي",
+      "sector": "Transport",
+      "location_en": "",
+      "location_ar": ""
+    },
+    {
+      "name_en": "Arabia Taxi",
+      "name_ar": "تاكسي العربية",
+      "sector": "Transport",
       "location_en": "",
       "location_ar": ""
     }

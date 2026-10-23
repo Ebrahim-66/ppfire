@@ -11,3 +11,4 @@
 .nav nav .career-menu-link{display:none}main>.careers{padding-top:160px;min-height:75vh}@media(max-width:1050px){.nav nav.open .career-menu-link{display:block}}
 
 @media(max-width:680px){.hero h1{line-height:1.16}[dir=rtl] .hero h1{line-height:1.3;letter-spacing:0}.metric{min-width:0}.metric>div{min-width:0}.metric span,.metric small{line-height:1.45;overflow-wrap:anywhere}}
+.form-trap{display:none!important}.form-feedback{margin:0;padding:13px 15px;border-radius:12px;background:#edf8f0;color:#236742;font-size:14px;line-height:1.65;overflow-wrap:anywhere}.contact form button:disabled,.career-form button:disabled{opacity:.65;cursor:wait}

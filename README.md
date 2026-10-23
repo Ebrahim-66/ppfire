@@ -1,10 +1,10 @@
 # FIRECO Website
 
-Bilingual English and Arabic website for FIRECO Technical Services LLC. The site presents fire alarm and firefighting system design, supply, installation, maintenance, annual maintenance contracts, and Civil Defence certificate assistance across the UAE.
+Bilingual English and Arabic website for FIRECO Technical Services LLC. The website presents fire alarm and firefighting system design, supply, installation, maintenance, AMC support, Civil Defence certificate assistance, client references, and UAE office contact details.
 
 ## Build and preview
 
-Requirements: Node.js and pnpm (the repository pins pnpm in `package.json`).
+Requirements: Node.js 20+ and pnpm 11 (the repository pins pnpm in `package.json`).
 
 ```sh
 pnpm install --frozen-lockfile
@@ -12,18 +12,24 @@ pnpm run build
 pnpm run preview
 ```
 
-The production client is written to `dist/client`. The build also prepares the server and hosting metadata in `dist/`.
+Vite writes the production website to `dist/client`. The build command is `pnpm run build`; the Vercel output directory is `dist/client`.
 
-## Website content
+## Pages
 
-- `src/` contains the responsive React website and English/Arabic content.
-- `public/assets/` and `public/clients/` contain site photography, the company logo, profile PDF, and client marks.
-- `data/clients.json` stores the 71 client and project references.
-- `admin/` contains the CMS interface and GitHub backend configuration for `Ebrahim-66/fireco-web`.
-- `worker/` and `vercel.json` contain the hosting/security routing configuration.
+- `/` — bilingual company website.
+- `/careers.html` — careers application form with private PDF CV upload.
+- `/adminportal` — secure enquiry-management portal.
 
-The enquiry form opens the visitor’s email application with a prepared message addressed to `info@firecots.com`; it does not send mail from a server.
+## Portal setup
 
-## Deployment
+The portal requires Neon Postgres, private Vercel Blob storage, and Resend email credentials. Configure the server-side Vercel environment variables before using the portal or online submission forms. See [PORTAL-SETUP.md](PORTAL-SETUP.md) for the exact checklist and first-use steps. Never commit secrets or applicant CVs.
 
-Deploy the repository using the hosting provider’s project settings. Use `pnpm run build` as the build command and `dist/client` as the static output directory when the provider requests one. The repository does not contain hosting credentials or perform deployment automatically.
+The enquiry form stores enquiries and sends notifications to `info@firecots.com`. The careers form stores applications and CVs privately and sends notifications to `hr@firecots.com` once the required deployment services are configured.
+
+## Content
+
+- `src/` contains the responsive React website and portal UI.
+- `public/assets/` contains the website images, company logo, and profile PDF.
+- `data/clients.json` and `public/data/clients.json` contain synchronized client and project references.
+- `api/portal/[...path].js` contains the Vercel serverless portal API.
+- `vercel.json` configures the static output, portal route, and security headers.
