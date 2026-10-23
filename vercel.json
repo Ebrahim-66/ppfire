@@ -59,6 +59,7 @@
     }
   ],
   "rewrites": [
+    { "source": "/api/portal/:path*", "destination": "/api/fireco-portal?path=:path*" },
     { "source": "/adminportal", "destination": "/adminportal.html" }
   ]
 }

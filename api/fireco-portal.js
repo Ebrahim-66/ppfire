@@ -3,7 +3,7 @@ import { del, get, put } from '@vercel/blob';
 import { createHash, createHmac, randomBytes, scrypt as scryptCb, timingSafeEqual } from 'node:crypto';
 import { promisify } from 'node:util';
 import { Readable } from 'node:stream';
-import clientsSeed from '../../public/data/clients.json' with { type: 'json' };
+import clientsSeed from '../public/data/clients.json' with { type: 'json' };
 
 const scrypt = promisify(scryptCb);
 const SESSION_TTL = 60 * 60 * 8;
