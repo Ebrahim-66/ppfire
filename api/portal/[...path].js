@@ -136,7 +136,15 @@ async function sendNotice(to, subject, text) {
   }
 }
 const idParam = req => clean(Array.isArray(req.query.id) ? req.query.id[0] : req.query.id, 80);
-const pathOf = req => (Array.isArray(req.query.path) ? req.query.path : [req.query.path]).filter(Boolean).join('/');
+const pathOf = req => {
+  const route = req.query?.path;
+  if (route) return (Array.isArray(route) ? route : [route]).filter(Boolean).join('/');
+  return new URL(req.url || '/', 'http://localhost').pathname
+    .replace(/^\/api\/portal\/?/, '')
+    .split('/')
+    .filter(Boolean)
+    .join('/');
+};
 const settingRows = async () => (await db()`SELECT key,value FROM portal_settings ORDER BY key`).reduce((result, row) => ({ ...result, [row.key]: row.value }), {});
 
 async function main(req, res) {
