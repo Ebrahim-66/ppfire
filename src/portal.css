@@ -7,3 +7,4 @@
 .portal-setup ul{display:grid;gap:6px;margin:10px 0;padding-left:20px;color:#74531e;font-size:11px;line-height:1.5}
 
 .portal-setup + .portal-login-form{margin-top:16px}
+.portal-filters{display:flex;align-items:end;gap:12px;flex-wrap:wrap;padding:16px 22px;border-bottom:1px solid #eceef0;background:#fcfcfd}.portal-filters label{display:grid;gap:6px;min-width:min(100%,230px);font-size:11px;font-weight:700;color:#555e69}.portal-filters input,.portal-filters select{height:40px;width:100%;border:1px solid #dfe2e6;border-radius:8px;background:#fff;color:#252b33;padding:0 11px;font-size:12px}.portal-filters input:focus,.portal-filters select:focus{outline:2px solid #d7192033;border-color:#ce282d}.portal-filter-count{margin-left:auto;padding-bottom:11px;color:#747c86;font-size:11px;white-space:nowrap}@media(max-width:700px){.portal-filters{padding:15px;gap:10px}.portal-filters label{flex:1 1 150px;min-width:0}.portal-filter-count{width:100%;margin:0;padding:0}}
