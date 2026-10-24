@@ -281,7 +281,7 @@ async function main(req, res) {
     const password = String(body.password || '');
     const ipHash = requestIpHash(req);
     const recent = await db()`SELECT count(*)::int AS count FROM portal_login_attempts WHERE ip_hash=${ipHash} AND created_at > now() - interval '15 minutes'`;
-    const locked = recent[0].count >= 8;
+    const locked = recent[0].count >= 3;
     const rows = await db()`SELECT id,username,password_hash,role,active FROM portal_users WHERE username=${username} LIMIT 1`;
     const user = rows[0];
     const valid = user && user.active && await verifyPassword(password, user.password_hash);
