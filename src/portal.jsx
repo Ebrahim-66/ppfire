@@ -155,7 +155,7 @@ function Portal() {
       if (!r.ok) throw new Error(d.error || "Sign in failed.");
       setUser(d.user);
       setLogin((v) => ({ ...v, password: "" }));
-      setTab(d.user.role === "manager" ? "dashboard" : "enquiries");
+      setTab("dashboard");
     } catch (e) {
       setError(e.message);
     }
@@ -173,19 +173,16 @@ function Portal() {
       "Status updated.",
     );
   const nav = [
+    ["dashboard", "Overview", ChartBar],
+    ["enquiries", "Enquiries", Globe],
+    ["applications", "Careers", Briefcase],
     ...(manager
       ? [
-          ["dashboard", "Overview", ChartBar],
-          ["enquiries", "Enquiries", Globe],
-          ["applications", "Careers", Briefcase],
           ["clients", "Clients", Users],
           ["users", "Users", UserPlus],
           ["settings", "Settings", GearSix],
         ]
-      : [
-          ["enquiries", "Enquiries", Globe],
-          ["applications", "Careers", Briefcase],
-        ]),
+      : []),
   ];
   if (busy) return <div className="portal-loading">Loading FIRECO Portal…</div>;
   if (!user)
@@ -297,7 +294,7 @@ function Portal() {
           <i>{user.role === "manager" ? "M" : "A"}</i>
           <span>
             <b>{user.username}</b>
-            <small>{manager ? "Manager" : "Admin · view only"}</small>
+            <small>{manager ? "Manager" : "Admin · overview & status"}</small>
           </span>
           <button onClick={signOut} title="Sign out">
             <SignOut size={19} />
@@ -333,7 +330,7 @@ function Portal() {
           <div className="portal-heading">
             <div>
               <p className="portal-eyebrow">
-                {manager ? "MANAGER WORKSPACE" : "READ-ONLY WORKSPACE"}
+                {manager ? "MANAGER WORKSPACE" : "ADMIN WORKSPACE"}
               </p>
               <h1>{nav.find((n) => n[0] === tab)?.[1] || "Portal"}</h1>
             </div>
@@ -351,14 +348,35 @@ function Portal() {
               </button>
             </div>
           )}
-          {tab === "dashboard" && manager && (
-            <Dashboard data={data.dashboard || {}} />
+          {tab === "dashboard" && (
+            <Dashboard
+              data={data.dashboard || {}}
+              manager={manager}
+              reviewRequest={(id, decision) =>
+                mutate(
+                  `delete-requests/${id}`,
+                  "PATCH",
+                  { decision },
+                  decision === "approve"
+                    ? "Deletion request approved and record removed."
+                    : "Deletion request declined.",
+                )
+              }
+            />
           )}
           {tab === "enquiries" && (
             <Enquiries
               rows={data.enquiries?.enquiries || []}
               manager={manager}
               updateStatus={updateStatus}
+              requestDelete={(id) =>
+                mutate(
+                  `enquiries/${id}/delete-request`,
+                  "POST",
+                  {},
+                  "Deletion request sent to the manager.",
+                )
+              }
               remove={(id) =>
                 mutate(
                   `enquiries/${id}`,
@@ -374,6 +392,14 @@ function Portal() {
               rows={data.applications?.applications || []}
               manager={manager}
               updateStatus={updateStatus}
+              requestDelete={(id) =>
+                mutate(
+                  `applications/${id}/delete-request`,
+                  "POST",
+                  {},
+                  "Deletion request sent to the manager.",
+                )
+              }
               remove={(id) =>
                 mutate(
                   `applications/${id}`,
@@ -409,7 +435,7 @@ function Portal() {
     </div>
   );
 }
-function Dashboard({ data }) {
+function Dashboard({ data, manager, reviewRequest }) {
   return (
     <>
       <div className="portal-metrics">
@@ -434,6 +460,57 @@ function Dashboard({ data }) {
           </article>
         ))}
       </div>
+      {data.deletionRequests?.length > 0 && (
+        <section className="portal-panel">
+          <div className="portal-panel-title">
+            <div>
+              <h2>{manager ? "Deletion requests" : "Your deletion requests"}</h2>
+              <p>
+                {manager
+                  ? "Review admin requests before records are permanently removed."
+                  : "Track your deletion requests and manager decisions."}
+              </p>
+            </div>
+          </div>
+          <div className="portal-request-list">
+            {data.deletionRequests.map((request) => (
+              <article className="portal-request" key={request.id}>
+                <div>
+                  <b>{request.record_type === "enquiry" ? "Enquiry" : "Career application"}</b>
+                  <span>{request.record_label}</span>
+                  <small>
+                    Requested by {request.requester_username} · {date(request.created_at)}
+                  </small>
+                </div>
+                {manager ? (
+                  <div className="portal-request-actions">
+                    <button
+                      className="portal-primary"
+                      onClick={() => reviewRequest(request.id, "approve")}
+                    >
+                      Approve deletion
+                    </button>
+                    <button
+                      className="portal-secondary"
+                      onClick={() => reviewRequest(request.id, "reject")}
+                    >
+                      Decline
+                    </button>
+                  </div>
+                ) : (
+                  <span className={`portal-status ${request.status === "pending" ? "reviewing" : request.status === "approved" ? "completed" : "rejected"}`}>
+                    {request.status === "pending"
+                      ? "Pending review"
+                      : request.status === "approved"
+                        ? "Approved"
+                        : "Declined"}
+                  </span>
+                )}
+              </article>
+            ))}
+          </div>
+        </section>
+      )}
       <section className="portal-panel">
         <div className="portal-panel-title">
           <div>
@@ -531,7 +608,7 @@ function matches(row, fields, query) {
     )
   );
 }
-function Enquiries({ rows, manager, updateStatus, remove }) {
+function Enquiries({ rows, manager, updateStatus, requestDelete, remove }) {
   const [query, setQuery] = useState(""),
     [filter, setFilter] = useState("all");
   const visible = rows.filter(
@@ -580,7 +657,7 @@ function Enquiries({ rows, manager, updateStatus, remove }) {
                 <th>Details</th>
                 <th>Received</th>
                 <th>Status</th>
-                {manager && <th />}
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -598,27 +675,21 @@ function Enquiries({ rows, manager, updateStatus, remove }) {
                   <td className="portal-details">{row.details}</td>
                   <td>{date(row.created_at)}</td>
                   <td>
-                    {manager ? (
-                      <select
-                        value={row.status}
-                        onChange={(e) =>
-                          updateStatus("enquiry", row.id, e.target.value)
-                        }
-                      >
-                        {statuses.enquiry.map((s) => (
-                          <option key={s} value={s}>
-                            {labels[s]}
-                          </option>
-                        ))}
-                      </select>
-                    ) : (
-                      <span className={`portal-status ${row.status}`}>
-                        {labels[row.status]}
-                      </span>
-                    )}
+                    <select
+                      value={row.status}
+                      onChange={(e) =>
+                        updateStatus("enquiry", row.id, e.target.value)
+                      }
+                    >
+                      {statuses.enquiry.map((s) => (
+                        <option key={s} value={s}>
+                          {labels[s]}
+                        </option>
+                      ))}
+                    </select>
                   </td>
-                  {manager && (
-                    <td>
+                  <td>
+                    {manager ? (
                       <button
                         className="portal-icon-btn danger"
                         onClick={() => remove(row.id)}
@@ -626,8 +697,17 @@ function Enquiries({ rows, manager, updateStatus, remove }) {
                       >
                         <XCircle />
                       </button>
-                    </td>
-                  )}
+                    ) : row.deletion_requested ? (
+                      <span className="portal-status reviewing">Request pending</span>
+                    ) : (
+                      <button
+                        className="portal-secondary portal-request-button"
+                        onClick={() => requestDelete(row.id)}
+                      >
+                        Request deletion
+                      </button>
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -637,7 +717,7 @@ function Enquiries({ rows, manager, updateStatus, remove }) {
     </section>
   );
 }
-function Applications({ rows, manager, updateStatus, remove }) {
+function Applications({ rows, manager, updateStatus, requestDelete, remove }) {
   const [loading, setLoading] = useState(""),
     [query, setQuery] = useState(""),
     [filter, setFilter] = useState("all");
@@ -719,31 +799,34 @@ function Applications({ rows, manager, updateStatus, remove }) {
                   <ArrowSquareOut />
                   {loading === row.id ? "Loading…" : "Download CV"}
                 </button>
+                <select
+                  value={row.status}
+                  onChange={(e) =>
+                    updateStatus("application", row.id, e.target.value)
+                  }
+                >
+                  {statuses.application.map((s) => (
+                    <option key={s} value={s}>
+                      {labels[s]}
+                    </option>
+                  ))}
+                </select>
                 {manager ? (
-                  <select
-                    value={row.status}
-                    onChange={(e) =>
-                      updateStatus("application", row.id, e.target.value)
-                    }
-                  >
-                    {statuses.application.map((s) => (
-                      <option key={s} value={s}>
-                        {labels[s]}
-                      </option>
-                    ))}
-                  </select>
-                ) : (
-                  <span className={`portal-status ${row.status}`}>
-                    {labels[row.status]}
-                  </span>
-                )}
-                {manager && (
                   <button
                     className="portal-icon-btn danger"
                     onClick={() => remove(row.id)}
                     title="Delete application"
                   >
                     <XCircle />
+                  </button>
+                ) : row.deletion_requested ? (
+                  <span className="portal-status reviewing">Request pending</span>
+                ) : (
+                  <button
+                    className="portal-secondary portal-request-button"
+                    onClick={() => requestDelete(row.id)}
+                  >
+                    Request deletion
                   </button>
                 )}
               </div>
@@ -1092,7 +1175,7 @@ function UserManagement({ rows, current, mutate }) {
               value={form.role}
               onChange={(e) => setForm({ ...form, role: e.target.value })}
             >
-              <option value="admin">Admin · view only</option>
+              <option value="admin">Admin · overview & status</option>
               <option value="manager">Manager · full access</option>
             </select>
           </label>

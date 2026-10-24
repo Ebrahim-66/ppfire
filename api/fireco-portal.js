@@ -65,6 +65,7 @@ const sessionCookie = token => `portal_session=${encodeURIComponent(token)}; Htt
 const clearCookie = 'portal_session=; HttpOnly; Secure; SameSite=Strict; Path=/api/portal; Max-Age=0';
 const isManager = user => user?.role === 'manager';
 const requireManager = user => { if (!user) throw Object.assign(new Error('Sign in required'), { status: 401 }); if (!isManager(user)) throw Object.assign(new Error('Manager permission required'), { status: 403 }); };
+const requireStaff = user => { if (!user) throw Object.assign(new Error('Sign in required'), { status: 401 }); if (!['manager','admin'].includes(user.role)) throw Object.assign(new Error('Portal permission required'), { status: 403 }); };
 
 async function ensureSchema() {
   if (!schemaPromise) schemaPromise = (async () => {
@@ -76,6 +77,8 @@ async function ensureSchema() {
     await q`CREATE TABLE IF NOT EXISTS portal_analytics_daily (day date NOT NULL DEFAULT current_date, event text NOT NULL, label text NOT NULL DEFAULT '', count bigint NOT NULL DEFAULT 0, PRIMARY KEY (day,event,label))`;
     await q`CREATE TABLE IF NOT EXISTS portal_settings (key text PRIMARY KEY, value text NOT NULL, updated_at timestamptz NOT NULL DEFAULT now())`;
     await q`CREATE TABLE IF NOT EXISTS portal_login_attempts (id bigserial PRIMARY KEY, ip_hash text NOT NULL, created_at timestamptz NOT NULL DEFAULT now())`;
+    await q`CREATE TABLE IF NOT EXISTS portal_delete_requests (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), record_type text NOT NULL CHECK (record_type IN ('enquiry','application')), record_id uuid NOT NULL, requester_id uuid REFERENCES portal_users(id) ON DELETE SET NULL, requester_username text NOT NULL, record_label text NOT NULL, reason text NOT NULL DEFAULT '', status text NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','approved','rejected')), decided_by text, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now())`;
+    await q`CREATE UNIQUE INDEX IF NOT EXISTS portal_delete_requests_one_pending ON portal_delete_requests(record_type,record_id) WHERE status='pending'`;
     await q`CREATE TABLE IF NOT EXISTS portal_public_limits (id bigserial PRIMARY KEY, ip_hash text NOT NULL, created_at timestamptz NOT NULL DEFAULT now())`;
     await q`CREATE TABLE IF NOT EXISTS portal_analytics_limits (ip_hash text PRIMARY KEY, last_event timestamptz NOT NULL DEFAULT now())`;
     const users = [
@@ -316,31 +319,44 @@ async function main(req, res) {
   const user = { ...auth, ...activeRows[0] };
 
   if (path === 'dashboard' && method === 'GET') {
-    requireManager(user);
-    const [enquiries, applications, clients, users, events, recentEvents] = await Promise.all([
+    requireStaff(user);
+    const deletionRequestsQuery = isManager(user)
+      ? db()`SELECT id,record_type,record_id,requester_username,record_label,reason,status,created_at FROM portal_delete_requests WHERE status='pending' ORDER BY created_at DESC LIMIT 100`
+      : db()`SELECT id,record_type,record_id,requester_username,record_label,reason,status,created_at FROM portal_delete_requests WHERE requester_id=${user.sub} ORDER BY created_at DESC LIMIT 50`;
+    const [enquiries, applications, clients, users, events, recentEvents, deletionRequests] = await Promise.all([
       db()`SELECT count(*)::int AS total, count(*) FILTER (WHERE status='new')::int AS new FROM portal_enquiries`,
       db()`SELECT count(*)::int AS total, count(*) FILTER (WHERE status='new')::int AS new FROM portal_applications`,
       db()`SELECT count(*)::int AS total FROM portal_clients`,
       db()`SELECT count(*)::int AS total FROM portal_users WHERE active=true`,
       db()`SELECT coalesce(sum(count),0)::bigint AS total FROM portal_analytics_daily WHERE day >= current_date - 29`,
       db()`SELECT day,event,label,count::int AS count FROM portal_analytics_daily WHERE day >= current_date - 29 ORDER BY day DESC,event,label LIMIT 250`,
+      deletionRequestsQuery,
     ]);
-    return json(res, 200, { enquiries: enquiries[0], applications: applications[0], clients: clients[0], users: users[0], visits30d: Number(events[0].total), events: recentEvents });
+    return json(res, 200, { enquiries: enquiries[0], applications: applications[0], clients: clients[0], users: users[0], visits30d: Number(events[0].total), events: recentEvents, deletionRequests });
   }
-  if (path === 'enquiries' && method === 'GET') return json(res, 200, { enquiries: await db()`SELECT * FROM portal_enquiries ORDER BY created_at DESC LIMIT 500` });
+  if (path === 'enquiries' && method === 'GET') return json(res, 200, { enquiries: await db()`SELECT e.*, EXISTS (SELECT 1 FROM portal_delete_requests r WHERE r.record_type='enquiry' AND r.record_id=e.id AND r.status='pending') AS deletion_requested FROM portal_enquiries e ORDER BY e.created_at DESC LIMIT 500` });
   if (path.startsWith('enquiries/') && path.endsWith('/status') && method === 'PATCH') {
-    requireManager(user);
+    requireStaff(user);
     const id = path.split('/')[1], status = clean(getBody(req).status, 30);
     if (!['new','in_progress','completed','archived'].includes(status)) return json(res, 400, { error: 'Invalid enquiry status.' });
     const rows = await db()`UPDATE portal_enquiries SET status=${status},updated_at=now() WHERE id=${id} RETURNING id`;
     return json(res, rows.length ? 200 : 404, rows.length ? { ok: true } : { error: 'Enquiry not found.' });
   }
+  if (path.startsWith('enquiries/') && path.endsWith('/delete-request') && method === 'POST') {
+    if (user.role !== 'admin') return json(res, 403, { error: 'Only admins can request deletion.' });
+    const id = path.split('/')[1], rows = await db()`SELECT name,company,location FROM portal_enquiries WHERE id=${id} LIMIT 1`;
+    if (!rows[0]) return json(res, 404, { error: 'Enquiry not found.' });
+    const label = [rows[0].name, rows[0].company, rows[0].location].filter(Boolean).join(' · ');
+    const requests = await db()`INSERT INTO portal_delete_requests(record_type,record_id,requester_id,requester_username,record_label,reason) VALUES ('enquiry',${id},${user.sub},${user.username},${label},${clean(getBody(req).reason,500)}) ON CONFLICT (record_type,record_id) WHERE status='pending' DO NOTHING RETURNING id`;
+    return json(res, requests.length ? 201 : 409, requests.length ? { ok: true } : { error: 'A deletion request is already pending for this enquiry.' });
+  }
   if (path.startsWith('enquiries/') && method === 'DELETE') {
     requireManager(user);
     const id = path.split('/')[1], rows = await db()`DELETE FROM portal_enquiries WHERE id=${id} RETURNING id`;
+    if (rows.length) await db()`UPDATE portal_delete_requests SET status='approved',decided_by=${user.username},updated_at=now() WHERE record_type='enquiry' AND record_id=${id} AND status='pending'`;
     return json(res, rows.length ? 200 : 404, rows.length ? { ok: true } : { error: 'Enquiry not found.' });
   }
-  if (path === 'applications' && method === 'GET') return json(res, 200, { applications: await db()`SELECT id,name,email,phone,role,message,cv_filename,status,created_at,updated_at FROM portal_applications ORDER BY created_at DESC LIMIT 500` });
+  if (path === 'applications' && method === 'GET') return json(res, 200, { applications: await db()`SELECT a.id,a.name,a.email,a.phone,a.role,a.message,a.cv_filename,a.status,a.created_at,a.updated_at,EXISTS (SELECT 1 FROM portal_delete_requests r WHERE r.record_type='application' AND r.record_id=a.id AND r.status='pending') AS deletion_requested FROM portal_applications a ORDER BY a.created_at DESC LIMIT 500` });
   if (path.startsWith('applications/') && path.endsWith('/cv') && method === 'GET') {
     if (!process.env.BLOB_READ_WRITE_TOKEN) return json(res, 503, { error: 'CV storage is not configured.' });
     const id = path.split('/')[1], rows = await db()`SELECT cv_pathname,cv_filename FROM portal_applications WHERE id=${id} LIMIT 1`;
@@ -355,11 +371,19 @@ async function main(req, res) {
     return Readable.fromWeb(file.stream).pipe(res);
   }
   if (path.startsWith('applications/') && path.endsWith('/status') && method === 'PATCH') {
-    requireManager(user);
+    requireStaff(user);
     const id = path.split('/')[1], status = clean(getBody(req).status, 30);
     if (!['new','reviewing','shortlisted','rejected','hired'].includes(status)) return json(res, 400, { error: 'Invalid application status.' });
     const rows = await db()`UPDATE portal_applications SET status=${status},updated_at=now() WHERE id=${id} RETURNING id`;
     return json(res, rows.length ? 200 : 404, rows.length ? { ok: true } : { error: 'Application not found.' });
+  }
+  if (path.startsWith('applications/') && path.endsWith('/delete-request') && method === 'POST') {
+    if (user.role !== 'admin') return json(res, 403, { error: 'Only admins can request deletion.' });
+    const id = path.split('/')[1], rows = await db()`SELECT name,role FROM portal_applications WHERE id=${id} LIMIT 1`;
+    if (!rows[0]) return json(res, 404, { error: 'Application not found.' });
+    const label = [rows[0].name, rows[0].role].filter(Boolean).join(' · ');
+    const requests = await db()`INSERT INTO portal_delete_requests(record_type,record_id,requester_id,requester_username,record_label,reason) VALUES ('application',${id},${user.sub},${user.username},${label},${clean(getBody(req).reason,500)}) ON CONFLICT (record_type,record_id) WHERE status='pending' DO NOTHING RETURNING id`;
+    return json(res, requests.length ? 201 : 409, requests.length ? { ok: true } : { error: 'A deletion request is already pending for this application.' });
   }
   if (path.startsWith('applications/') && method === 'DELETE') {
     requireManager(user);
@@ -367,6 +391,30 @@ async function main(req, res) {
     if (!rows[0]) return json(res, 404, { error: 'Application not found.' });
     await del(rows[0].cv_pathname);
     await db()`DELETE FROM portal_applications WHERE id=${id}`;
+    await db()`UPDATE portal_delete_requests SET status='approved',decided_by=${user.username},updated_at=now() WHERE record_type='application' AND record_id=${id} AND status='pending'`;
+    return json(res, 200, { ok: true });
+  }
+  if (path.startsWith('delete-requests/') && method === 'PATCH') {
+    requireManager(user);
+    const id = path.split('/')[1], decision = clean(getBody(req).decision, 20);
+    if (!['approve','reject'].includes(decision)) return json(res, 400, { error: 'Choose approve or reject.' });
+    const request = (await db()`SELECT id,record_type,record_id,status FROM portal_delete_requests WHERE id=${id} LIMIT 1`)[0];
+    if (!request) return json(res, 404, { error: 'Deletion request not found.' });
+    if (request.status !== 'pending') return json(res, 409, { error: 'This deletion request has already been reviewed.' });
+    if (decision === 'reject') {
+      await db()`UPDATE portal_delete_requests SET status='rejected',decided_by=${user.username},updated_at=now() WHERE id=${id} AND status='pending'`;
+      return json(res, 200, { ok: true });
+    }
+    let cvPathname = null;
+    if (request.record_type === 'enquiry') {
+      await db()`DELETE FROM portal_enquiries WHERE id=${request.record_id}`;
+    } else {
+      const application = (await db()`SELECT cv_pathname FROM portal_applications WHERE id=${request.record_id} LIMIT 1`)[0];
+      cvPathname = application?.cv_pathname || null;
+      await db()`DELETE FROM portal_applications WHERE id=${request.record_id}`;
+    }
+    await db()`UPDATE portal_delete_requests SET status='approved',decided_by=${user.username},updated_at=now() WHERE id=${id} AND status='pending'`;
+    if (cvPathname && process.env.BLOB_READ_WRITE_TOKEN) await del(cvPathname).catch(error => console.error('Could not remove private CV after approved deletion request', error?.message || error));
     return json(res, 200, { ok: true });
   }
   if (path === 'clients' && method === 'GET') { requireManager(user); return json(res, 200, { clients: (await db()`SELECT id,data,updated_at FROM portal_clients ORDER BY created_at,id`).map(row => ({ id: row.id, updated_at:row.updated_at, ...row.data })) }); }
