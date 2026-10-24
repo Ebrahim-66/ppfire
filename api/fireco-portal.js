@@ -146,6 +146,12 @@ const pathOf = req => {
     .join('/');
 };
 const settingRows = async () => (await db()`SELECT key,value FROM portal_settings ORDER BY key`).reduce((result, row) => ({ ...result, [row.key]: row.value }), {});
+const logoType = buffer => {
+  if (buffer.length >= 8 && buffer.subarray(0,8).equals(Buffer.from([0x89,0x50,0x4e,0x47,0x0d,0x0a,0x1a,0x0a]))) return { type:'image/png', ext:'png' };
+  if (buffer.length >= 3 && buffer[0]===0xff && buffer[1]===0xd8 && buffer[2]===0xff) return { type:'image/jpeg', ext:'jpg' };
+  if (buffer.length >= 12 && buffer.toString('ascii',0,4)==='RIFF' && buffer.toString('ascii',8,12)==='WEBP') return { type:'image/webp', ext:'webp' };
+  return null;
+};
 
 async function main(req, res) {
   const path = pathOf(req);
@@ -161,8 +167,16 @@ async function main(req, res) {
   }
   await ensureSchema();
   if (path === 'public/clients' && method === 'GET') {
-    const rows = await db()`SELECT data FROM portal_clients ORDER BY created_at, id`;
-    return json(res, 200, { clients: rows.map(row => row.data) });
+    const rows = await db()`SELECT id,data,updated_at FROM portal_clients ORDER BY created_at, id`;
+    return json(res, 200, { clients: rows.map(row => ({ id:row.id, ...row.data, logo_url:row.data.logo_pathname ? `/api/portal/public/client-logo/${encodeURIComponent(row.id)}?v=${encodeURIComponent(row.updated_at.toISOString())}` : null })) });
+  }
+  if (path.startsWith('public/client-logo/') && method === 'GET') {
+    const id=clean(path.split('/')[2],80),rows=await db()`SELECT data->>'logo_pathname' AS pathname,data->>'logo_content_type' AS content_type FROM portal_clients WHERE id=${id} LIMIT 1`;
+    if(!rows[0]?.pathname || !process.env.BLOB_READ_WRITE_TOKEN) return json(res,404,{error:'Logo not found.'});
+    const file=await get(rows[0].pathname,{access:'private'});
+    if(!file||file.statusCode!==200) return json(res,404,{error:'Logo not found.'});
+    res.statusCode=200;res.setHeader('Content-Type',rows[0].content_type||'application/octet-stream');res.setHeader('Cache-Control','public, max-age=300, stale-while-revalidate=86400');res.setHeader('X-Content-Type-Options','nosniff');
+    return Readable.fromWeb(file.stream).pipe(res);
   }
   if (path === 'public/profile' && method === 'GET') {
     const rows=await db()`SELECT value FROM portal_settings WHERE key='profile_pathname' LIMIT 1`;
@@ -330,7 +344,7 @@ async function main(req, res) {
     await db()`DELETE FROM portal_applications WHERE id=${id}`;
     return json(res, 200, { ok: true });
   }
-  if (path === 'clients' && method === 'GET') { requireManager(user); return json(res, 200, { clients: (await db()`SELECT id,data FROM portal_clients ORDER BY created_at,id`).map(row => ({ id: row.id, ...row.data })) }); }
+  if (path === 'clients' && method === 'GET') { requireManager(user); return json(res, 200, { clients: (await db()`SELECT id,data,updated_at FROM portal_clients ORDER BY created_at,id`).map(row => ({ id: row.id, updated_at:row.updated_at, ...row.data })) }); }
   if (path === 'clients' && method === 'POST') {
     requireManager(user);
     const body = getBody(req), name_en = clean(body.name_en,120), name_ar = clean(body.name_ar,120), sector = clean(body.sector,80), location_en = clean(body.location_en,120), location_ar = clean(body.location_ar,120);
@@ -343,12 +357,37 @@ async function main(req, res) {
     requireManager(user);
     const id = path.split('/')[1], body = getBody(req), name_en = clean(body.name_en,120), name_ar = clean(body.name_ar,120), sector = clean(body.sector,80), location_en = clean(body.location_en,120), location_ar = clean(body.location_ar,120);
     if (!name_en || !name_ar || !sector) return json(res, 400, { error: 'English name, Arabic name and sector are required.' });
-    const rows = await db()`UPDATE portal_clients SET data=${JSON.stringify({name_en,name_ar,sector,location_en,location_ar})}::jsonb,updated_at=now() WHERE id=${id} RETURNING id`;
+    const rows = await db()`UPDATE portal_clients SET data=data || ${JSON.stringify({name_en,name_ar,sector,location_en,location_ar})}::jsonb,updated_at=now() WHERE id=${id} RETURNING id`;
     return json(res, rows.length ? 200 : 404, rows.length ? { ok:true } : { error:'Client not found.' });
+  }
+  if (path.startsWith('clients/') && path.endsWith('/logo') && method === 'POST') {
+    requireManager(user);
+    if(!process.env.BLOB_READ_WRITE_TOKEN) return json(res,503,{error:'Logo storage is not configured.'});
+    const id=path.split('/')[1],body=getBody(req),encoded=String(body.data||'');
+    if(!encoded || encoded.length>3_000_000 || !/^[A-Za-z0-9+/=]+$/.test(encoded)) return json(res,400,{error:'Choose a PNG, JPG or WebP logo up to 2 MB.'});
+    const buffer=Buffer.from(encoded,'base64'),detected=logoType(buffer);
+    if(!detected || buffer.length>2*1024*1024) return json(res,400,{error:'Choose a valid PNG, JPG or WebP logo up to 2 MB.'});
+    const current=await db()`SELECT data->>'logo_pathname' AS pathname FROM portal_clients WHERE id=${id} LIMIT 1`;
+    if(!current[0]) return json(res,404,{error:'Client not found.'});
+    const blob=await put(`client-logos/${id}-${Date.now()}.${detected.ext}`,buffer,{access:'private',contentType:detected.type,addRandomSuffix:true});
+    try{
+      await db()`UPDATE portal_clients SET data=data || ${JSON.stringify({logo_pathname:blob.pathname,logo_content_type:detected.type,logo_disabled:false})}::jsonb,updated_at=now() WHERE id=${id}`;
+      if(current[0].pathname) await del(current[0].pathname).catch(()=>{});
+    }catch(error){await del(blob.pathname).catch(()=>{});throw error;}
+    return json(res,200,{ok:true,logo_url:`/api/portal/public/client-logo/${encodeURIComponent(id)}`});
+  }
+  if (path.startsWith('clients/') && path.endsWith('/logo') && method === 'DELETE') {
+    requireManager(user);
+    const id=path.split('/')[1],rows=await db()`SELECT data->>'logo_pathname' AS pathname FROM portal_clients WHERE id=${id} LIMIT 1`;
+    if(!rows[0]) return json(res,404,{error:'Client not found.'});
+    await db()`UPDATE portal_clients SET data=(data - 'logo_pathname' - 'logo_content_type') || '{"logo_disabled":true}'::jsonb,updated_at=now() WHERE id=${id}`;
+    if(rows[0].pathname && process.env.BLOB_READ_WRITE_TOKEN) await del(rows[0].pathname).catch(()=>{});
+    return json(res,200,{ok:true});
   }
   if (path.startsWith('clients/') && method === 'DELETE') {
     requireManager(user);
-    const id = path.split('/')[1], rows = await db()`DELETE FROM portal_clients WHERE id=${id} RETURNING id`;
+    const id = path.split('/')[1], existing=await db()`SELECT data->>'logo_pathname' AS pathname FROM portal_clients WHERE id=${id} LIMIT 1`, rows = await db()`DELETE FROM portal_clients WHERE id=${id} RETURNING id`;
+    if(existing[0]?.pathname && process.env.BLOB_READ_WRITE_TOKEN) await del(existing[0].pathname).catch(()=>{});
     return json(res, rows.length ? 200 : 404, rows.length ? { ok:true } : { error:'Client not found.' });
   }
   if (path === 'users' && method === 'GET') { requireManager(user); return json(res, 200, { users: await db()`SELECT id,username,role,active,created_at FROM portal_users ORDER BY created_at` }); }

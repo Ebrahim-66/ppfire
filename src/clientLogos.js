@@ -9,7 +9,9 @@ const files = {
 
 const healthSites = new Set(['Kalba Hospital','Dhaid Hospital','Nazwa Health Center','Khorfakkan Health Center','Al Madam Health Center','Kalba Preventive Medicine Center','Qassimi Hospital','Shaam Hospital','Abdullah Bin Omran Hospital','Saqar Hospital','Preventive Medicine','Madina PHC','Al-Faseel Family Health Promotion Center','Khulabiya PHC']);
 
-export function clientLogo(name){
+export function clientLogo(name, uploadedLogo, disabled = false){
+  if(disabled) return null;
+  if(uploadedLogo) return uploadedLogo;
   const file=files[name] || (healthSites.has(name)?files['Emirates Health Services']:name==='Various Post Office Sites'?files['Emirates Post Group']:['Mushairif School C1','Al Maeried School C1'].includes(name)?files['Emirates Schools Establishment']:null);
   return file?`/clients/${file}`:null;
 }
