@@ -281,12 +281,18 @@ async function main(req, res) {
     const password = String(body.password || '');
     const ipHash = requestIpHash(req);
     const recent = await db()`SELECT count(*)::int AS count FROM portal_login_attempts WHERE ip_hash=${ipHash} AND created_at > now() - interval '15 minutes'`;
-    if (recent[0].count >= 8) return json(res, 429, { error: 'Too many sign-in attempts. Try again in 15 minutes.' });
-    await db()`INSERT INTO portal_login_attempts(ip_hash) VALUES (${ipHash})`;
+    const locked = recent[0].count >= 8;
     const rows = await db()`SELECT id,username,password_hash,role,active FROM portal_users WHERE username=${username} LIMIT 1`;
     const user = rows[0];
     const valid = user && user.active && await verifyPassword(password, user.password_hash);
-    if (!valid) return json(res, 401, { error: 'The username or password is incorrect.' });
+    if (locked && !valid) return json(res, 429, { error: 'Too many sign-in attempts. Try again in 15 minutes.' });
+    if (!locked && !valid) {
+      await db()`INSERT INTO portal_login_attempts(ip_hash) VALUES (${ipHash})`;
+      return json(res, 401, { error: 'The username or password is incorrect.' });
+    }
+    // A correct credential can recover access after a shared-network lockout;
+    // incorrect attempts remain blocked until the existing 15-minute window expires.
+    await db()`DELETE FROM portal_login_attempts WHERE ip_hash=${ipHash}`;
     const token = tokenSign({ sub: user.id, username: user.username, role: user.role, exp: Math.floor(Date.now()/1000) + SESSION_TTL });
     return json(res, 200, { ok: true, user: { username: user.username, role: user.role } }, { 'Set-Cookie': sessionCookie(token) });
   }
