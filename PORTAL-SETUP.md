@@ -32,7 +32,7 @@ Set these project environment variables for Production (and Preview if preview t
 ## First use
 
 1. Open `https://ppfire.vercel.app/adminportal` after the production deployment is ready.
-2. The first portal API request creates its database tables and imports the current client list. It also creates the initial manager and admin accounts from the two bootstrap environment variables. Initial account creation is one-time; later password changes belong in the portal.
+2. The first portal API request creates its database tables and imports the current client list. It also creates the initial manager and admin accounts from the two bootstrap environment variables. To reset either configured account through Vercel, change its password variable and redeploy. The new value is applied to the account once; it will not overwrite later password changes made in the manager portal unless that environment variable changes again.
 3. The manager can manage enquiries, applicants and CVs, clients, users, notification addresses, and the public company profile PDF. The admin account can view enquiries, applications, and CVs without changing records.
 4. Confirm a test enquiry and careers application appear in the portal and that notification emails arrive at `info@firecots.com` and `hr@firecots.com`.
 

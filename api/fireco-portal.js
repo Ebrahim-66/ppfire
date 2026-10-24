@@ -85,6 +85,21 @@ async function ensureSchema() {
     if(users.every(user=>user.password&&user.password.length>=12)){
       const managerHash=await hashPassword(users[0].password),adminHash=await hashPassword(users[1].password);
       await q`WITH gate AS (INSERT INTO portal_settings(key,value) VALUES ('accounts_bootstrapped','true') ON CONFLICT(key) DO NOTHING RETURNING key), manager_seed AS (INSERT INTO portal_users(username,password_hash,role) SELECT ${users[0].username},${managerHash},'manager' FROM gate ON CONFLICT(username) DO NOTHING RETURNING id), admin_seed AS (INSERT INTO portal_users(username,password_hash,role) SELECT ${users[1].username},${adminHash},'admin' FROM gate ON CONFLICT(username) DO NOTHING RETURNING id) SELECT 1`;
+      for (const user of users) {
+        const key=`${user.role}_password_fingerprint`;
+        const fingerprint=createHmac('sha256',secret()).update(user.password).digest('hex');
+        const previous=await q`SELECT value FROM portal_settings WHERE key=${key} LIMIT 1`;
+        if(previous[0]?.value===fingerprint) continue;
+        let account=await q`SELECT id,password_hash FROM portal_users WHERE username=${user.username} LIMIT 1`;
+        if(!account[0]) account=await q`SELECT id,password_hash FROM portal_users WHERE role=${user.role} ORDER BY created_at LIMIT 1`;
+        if(account[0]) {
+          const matches=await verifyPassword(user.password,account[0].password_hash);
+          if(!matches) await q`UPDATE portal_users SET password_hash=${await hashPassword(user.password)},updated_at=now() WHERE id=${account[0].id}`;
+        } else {
+          await q`INSERT INTO portal_users(username,password_hash,role) VALUES (${user.username},${await hashPassword(user.password)},${user.role}) ON CONFLICT(username) DO UPDATE SET password_hash=excluded.password_hash,role=excluded.role,updated_at=now()`;
+        }
+        await q`INSERT INTO portal_settings(key,value) VALUES (${key},${fingerprint}) ON CONFLICT(key) DO UPDATE SET value=excluded.value,updated_at=now()`;
+      }
     }
     await q`INSERT INTO portal_settings (key,value) VALUES ('enquiry_email','info@firecots.com'),('careers_email','hr@firecots.com'),('profile_pathname','') ON CONFLICT (key) DO NOTHING`;
     await q`INSERT INTO portal_clients (id,data) SELECT lower(trim(both '-' from regexp_replace(coalesce(x->>'name_en',x->>'name_ar','client'), '[^a-zA-Z0-9]+', '-', 'g'))), x FROM jsonb_array_elements(${JSON.stringify(clientsSeed.clients)}::jsonb) x ON CONFLICT (id) DO NOTHING`;
