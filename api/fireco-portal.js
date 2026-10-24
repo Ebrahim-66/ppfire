@@ -280,14 +280,18 @@ async function main(req, res) {
     const username = clean(body.username, 80).toLowerCase();
     const password = String(body.password || '');
     const ipHash = requestIpHash(req);
-    const recent = await db()`SELECT count(*)::int AS count FROM portal_login_attempts WHERE ip_hash=${ipHash} AND created_at > now() - interval '15 minutes'`;
-    const locked = recent[0].count >= 3;
+    const recent = await db()`SELECT count(*) FILTER (WHERE created_at > now() - interval '5 minutes')::int AS five_minute_count, count(*) FILTER (WHERE created_at > now() - interval '15 minutes')::int AS fifteen_minute_count FROM portal_login_attempts WHERE ip_hash=${ipHash} AND created_at > now() - interval '15 minutes'`;
+    const lockMinutes = recent[0].fifteen_minute_count >= 5 ? 15 : recent[0].five_minute_count >= 3 ? 5 : 0;
+    const locked = lockMinutes > 0;
     const rows = await db()`SELECT id,username,password_hash,role,active FROM portal_users WHERE username=${username} LIMIT 1`;
     const user = rows[0];
     const valid = user && user.active && await verifyPassword(password, user.password_hash);
-    if (locked && !valid) return json(res, 429, { error: 'Too many sign-in attempts. Try again in 15 minutes.' });
+    if (locked && !valid) return json(res, 429, { error: `Too many sign-in attempts. Try again in ${lockMinutes} minutes.` });
     if (!locked && !valid) {
       await db()`INSERT INTO portal_login_attempts(ip_hash) VALUES (${ipHash})`;
+      const updated = await db()`SELECT count(*) FILTER (WHERE created_at > now() - interval '5 minutes')::int AS five_minute_count, count(*) FILTER (WHERE created_at > now() - interval '15 minutes')::int AS fifteen_minute_count FROM portal_login_attempts WHERE ip_hash=${ipHash} AND created_at > now() - interval '15 minutes'`;
+      const nextLockMinutes = updated[0].fifteen_minute_count >= 5 ? 15 : updated[0].five_minute_count >= 3 ? 5 : 0;
+      if (nextLockMinutes) return json(res, 429, { error: `Too many sign-in attempts. Try again in ${nextLockMinutes} minutes.` });
       return json(res, 401, { error: 'The username or password is incorrect.' });
     }
     // A correct credential can recover access after a shared-network lockout;
