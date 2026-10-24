@@ -52,10 +52,11 @@ const setupLabels = {
 function date(value) {
   return value ? new Date(value).toLocaleString() : "—";
 }
-function Notice({ message, onClose }) {
+function Notice({ message, onClose, onUndo }) {
   return message ? (
     <div className="portal-notice" role="status">
       {message}
+      {onUndo && <button className="portal-undo" onClick={onUndo}>Undo</button>}
       <button onClick={onClose} aria-label="Dismiss">
         <XCircle size={18} />
       </button>
@@ -70,7 +71,10 @@ function Portal() {
   const [data, setData] = useState({}),
     [busy, setBusy] = useState(true),
     [error, setError] = useState(""),
-    [notice, setNotice] = useState("");
+    [notice, setNotice] = useState(""),
+    [confirmation, setConfirmation] = useState(null),
+    [undoAction, setUndoAction] = useState(null),
+    [undoBusy, setUndoBusy] = useState(false);
   const manager = user?.role === "manager";
   const coreReady = Boolean(
     health?.config &&
@@ -125,23 +129,58 @@ function Portal() {
       setError(e.message);
     }
   };
-  const mutate = async (path, method, body, success) => {
+  const runMutation = async (action, extraBody = {}) => {
     setError("");
     try {
-      const r = await endpoint(path, {
-        method,
+      const body = action.body === undefined ? undefined : { ...action.body, ...extraBody };
+      const r = await endpoint(action.path, {
+        method: action.method,
         body: body === undefined ? undefined : JSON.stringify(body),
       });
       const d = r.status === 204 ? {} : await r.json();
       if (!r.ok) throw new Error(d.error || "The request failed.");
-      setNotice(success);
+      setNotice(action.success);
+      setUndoAction(action.undo ? action.undo(d) : null);
       await loadTab(tab);
+      if (tab !== "dashboard" && action.path.startsWith("delete-requests/")) await loadTab("dashboard");
       await loadHealth();
       return d;
     } catch (e) {
       setError(e.message);
       return null;
     }
+  };
+  const describeMutation = (path, method, body, success, options = {}) => {
+    if (options.title) return { path, method, body, success, ...options };
+    if (path.endsWith("/delete-request")) return { path, method, body, success, title: "Request record deletion?", message: "Enter a reason for the manager. The record will stay in the portal until the manager approves the request.", reasonRequired: true, reason: "", undo: (d) => ({ label: "Cancel deletion request", path: `delete-requests/${d.id}`, method: "DELETE", success: "Deletion request cancelled." }) };
+    if (path.startsWith("delete-requests/") && body?.decision === "approve") return { path, method, body, success, title: "Approve permanent deletion?", message: "This will permanently delete the record and, for a career application, its CV. This cannot be undone.", destructive: true };
+    if (path.startsWith("delete-requests/") && body?.decision === "reject") return { path, method, body, success, title: "Decline this deletion request?", message: "The record will remain saved. You can undo this decision from the success message.", undo: () => ({ label: "Reopen deletion request", path: `${path}`, method: "PATCH", body: { decision: "undo-reject" }, success: "Deletion request reopened." }) };
+    if (path.endsWith("/status") && method === "PATCH") return { path, method, body, success, title: "Confirm status change", message: "Apply this status change to the selected record?", undo: () => ({ label: "Undo status change", path, method: "PATCH", body: { status: body.previousStatus, expectedStatus: body.status }, success: "Previous status restored." }) };
+    if (method === "DELETE") return { path, method, body, success, title: "Permanently delete this item?", message: "This action cannot be undone.", destructive: true };
+    return { path, method, body, success, title: "Are you sure?", message: "Confirm that you want to make this change." };
+  };
+  const mutate = (path, method, body, success, options = {}) => new Promise((resolve) => {
+    setConfirmation({ ...describeMutation(path, method, body, success, options), resolve });
+  });
+  const cancelConfirmation = () => {
+    confirmation?.resolve(null);
+    setConfirmation(null);
+    if (tab) loadTab(tab);
+  };
+  const confirmMutation = async () => {
+    if (!confirmation) return;
+    const action = confirmation;
+    setConfirmation(null);
+    const result = await runMutation(action, action.reasonRequired ? { reason: action.reason.trim() } : {});
+    action.resolve(result);
+  };
+  const runUndo = async () => {
+    if (!undoAction || undoBusy) return;
+    setUndoBusy(true);
+    const action = undoAction;
+    setUndoAction(null);
+    await runMutation(action);
+    setUndoBusy(false);
   };
   const signIn = async (e) => {
     e.preventDefault();
@@ -161,15 +200,14 @@ function Portal() {
     }
   };
   const signOut = async () => {
-    await mutate("auth/logout", "POST", {}, "Signed out.");
-    setUser(null);
-    setData({});
+    const result = await mutate("auth/logout", "POST", {}, "Signed out.");
+    if (result) { setUser(null); setData({}); }
   };
-  const updateStatus = (kind, id, status) =>
+  const updateStatus = (kind, id, status, previousStatus) =>
     mutate(
       `${kind === "enquiry" ? "enquiries" : "applications"}/${id}/status`,
       "PATCH",
-      { status },
+      { status, previousStatus },
       "Status updated.",
     );
   const nav = [
@@ -339,7 +377,7 @@ function Portal() {
               Refresh
             </button>
           </div>
-          <Notice message={notice} onClose={() => setNotice("")} />
+          <Notice message={notice} onClose={() => setNotice("")} onUndo={undoAction ? runUndo : null} />
           {error && (
             <div className="portal-error-box" role="alert">
               {error}
@@ -360,6 +398,7 @@ function Portal() {
                   decision === "approve"
                     ? "Deletion request approved and record removed."
                     : "Deletion request declined.",
+                  decision === "reject" ? { undo: () => ({ label: "Reopen deletion request", path: `delete-requests/${id}`, method: "PATCH", body: { decision: "undo-reject" }, success: "Deletion request reopened." }) } : {},
                 )
               }
             />
@@ -377,14 +416,6 @@ function Portal() {
                   "Deletion request sent to the manager.",
                 )
               }
-              remove={(id) =>
-                mutate(
-                  `enquiries/${id}`,
-                  "DELETE",
-                  undefined,
-                  "Enquiry deleted.",
-                )
-              }
             />
           )}
           {tab === "applications" && (
@@ -398,14 +429,6 @@ function Portal() {
                   "POST",
                   {},
                   "Deletion request sent to the manager.",
-                )
-              }
-              remove={(id) =>
-                mutate(
-                  `applications/${id}`,
-                  "DELETE",
-                  undefined,
-                  "Application deleted.",
                 )
               }
             />
@@ -432,6 +455,27 @@ function Portal() {
           )}
         </main>
       </div>
+      {confirmation && (
+        <div className="portal-confirm-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) cancelConfirmation(); }}>
+          <section className="portal-confirm" role="dialog" aria-modal="true" aria-labelledby="portal-confirm-title">
+            <span className={confirmation.destructive ? "portal-confirm-icon danger" : "portal-confirm-icon"}>
+              {confirmation.destructive ? <Trash size={23} /> : <Check size={23} />}
+            </span>
+            <h2 id="portal-confirm-title">{confirmation.title}</h2>
+            <p>{confirmation.message}</p>
+            {confirmation.reasonRequired && (
+              <label className="portal-confirm-reason">Reason for deletion request
+                <textarea rows="4" minLength="5" maxLength="500" required value={confirmation.reason} onChange={(event) => setConfirmation((current) => ({ ...current, reason: event.target.value }))} placeholder="Explain why this record should be deleted" />
+                <small>At least 5 characters. The manager will review this reason.</small>
+              </label>
+            )}
+            <div className="portal-confirm-actions">
+              <button className="portal-secondary" onClick={cancelConfirmation}>Cancel</button>
+              <button className={confirmation.destructive ? "portal-danger-action" : "portal-primary"} onClick={confirmMutation} disabled={confirmation.reasonRequired && confirmation.reason.trim().length < 5}>{confirmation.destructive ? "Yes, continue" : "Confirm"}</button>
+            </div>
+          </section>
+        </div>
+      )}
     </div>
   );
 }
@@ -477,7 +521,8 @@ function Dashboard({ data, manager, reviewRequest }) {
               <article className="portal-request" key={request.id}>
                 <div>
                   <b>{request.record_type === "enquiry" ? "Enquiry" : "Career application"}</b>
-                  <span>{request.record_label}</span>
+                      <span>{request.record_label}</span>
+                  {request.reason && <small className="portal-deletion-reason">Reason: {request.reason}</small>}
                   <small>
                     Requested by {request.requester_username} · {date(request.created_at)}
                   </small>
@@ -608,7 +653,7 @@ function matches(row, fields, query) {
     )
   );
 }
-function Enquiries({ rows, manager, updateStatus, requestDelete, remove }) {
+function Enquiries({ rows, manager, updateStatus, requestDelete }) {
   const [query, setQuery] = useState(""),
     [filter, setFilter] = useState("all");
   const visible = rows.filter(
@@ -678,7 +723,7 @@ function Enquiries({ rows, manager, updateStatus, requestDelete, remove }) {
                     <select
                       value={row.status}
                       onChange={(e) =>
-                        updateStatus("enquiry", row.id, e.target.value)
+                        updateStatus("enquiry", row.id, e.target.value, row.status)
                       }
                     >
                       {statuses.enquiry.map((s) => (
@@ -689,16 +734,10 @@ function Enquiries({ rows, manager, updateStatus, requestDelete, remove }) {
                     </select>
                   </td>
                   <td>
-                    {manager ? (
-                      <button
-                        className="portal-icon-btn danger"
-                        onClick={() => remove(row.id)}
-                        title="Delete enquiry"
-                      >
-                        <XCircle />
-                      </button>
-                    ) : row.deletion_requested ? (
+                    {row.deletion_requested ? (
                       <span className="portal-status reviewing">Request pending</span>
+                    ) : manager ? (
+                      <span className="portal-status reviewing">Admin request required</span>
                     ) : (
                       <button
                         className="portal-secondary portal-request-button"
@@ -717,7 +756,7 @@ function Enquiries({ rows, manager, updateStatus, requestDelete, remove }) {
     </section>
   );
 }
-function Applications({ rows, manager, updateStatus, requestDelete, remove }) {
+function Applications({ rows, manager, updateStatus, requestDelete }) {
   const [loading, setLoading] = useState(""),
     [query, setQuery] = useState(""),
     [filter, setFilter] = useState("all");
@@ -802,7 +841,7 @@ function Applications({ rows, manager, updateStatus, requestDelete, remove }) {
                 <select
                   value={row.status}
                   onChange={(e) =>
-                    updateStatus("application", row.id, e.target.value)
+                    updateStatus("application", row.id, e.target.value, row.status)
                   }
                 >
                   {statuses.application.map((s) => (
@@ -811,16 +850,10 @@ function Applications({ rows, manager, updateStatus, requestDelete, remove }) {
                     </option>
                   ))}
                 </select>
-                {manager ? (
-                  <button
-                    className="portal-icon-btn danger"
-                    onClick={() => remove(row.id)}
-                    title="Delete application"
-                  >
-                    <XCircle />
-                  </button>
-                ) : row.deletion_requested ? (
+                {row.deletion_requested ? (
                   <span className="portal-status reviewing">Request pending</span>
+                ) : manager ? (
+                  <span className="portal-status reviewing">Admin request required</span>
                 ) : (
                   <button
                     className="portal-secondary portal-request-button"

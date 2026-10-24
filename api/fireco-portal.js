@@ -337,24 +337,24 @@ async function main(req, res) {
   if (path === 'enquiries' && method === 'GET') return json(res, 200, { enquiries: await db()`SELECT e.*, EXISTS (SELECT 1 FROM portal_delete_requests r WHERE r.record_type='enquiry' AND r.record_id=e.id AND r.status='pending') AS deletion_requested FROM portal_enquiries e ORDER BY e.created_at DESC LIMIT 500` });
   if (path.startsWith('enquiries/') && path.endsWith('/status') && method === 'PATCH') {
     requireStaff(user);
-    const id = path.split('/')[1], status = clean(getBody(req).status, 30);
+    const id = path.split('/')[1], body = getBody(req), status = clean(body.status, 30);
     if (!['new','in_progress','completed','archived'].includes(status)) return json(res, 400, { error: 'Invalid enquiry status.' });
-    const rows = await db()`UPDATE portal_enquiries SET status=${status},updated_at=now() WHERE id=${id} RETURNING id`;
-    return json(res, rows.length ? 200 : 404, rows.length ? { ok: true } : { error: 'Enquiry not found.' });
+    const rows = body.expectedStatus
+      ? await db()`UPDATE portal_enquiries SET status=${status},updated_at=now() WHERE id=${id} AND status=${clean(body.expectedStatus,30)} RETURNING id`
+      : await db()`UPDATE portal_enquiries SET status=${status},updated_at=now() WHERE id=${id} RETURNING id`;
+    return json(res, rows.length ? 200 : body.expectedStatus ? 409 : 404, rows.length ? { ok: true } : { error: body.expectedStatus ? 'The enquiry status changed elsewhere, so this undo was not applied.' : 'Enquiry not found.' });
   }
   if (path.startsWith('enquiries/') && path.endsWith('/delete-request') && method === 'POST') {
     if (user.role !== 'admin') return json(res, 403, { error: 'Only admins can request deletion.' });
-    const id = path.split('/')[1], rows = await db()`SELECT name,company,location FROM portal_enquiries WHERE id=${id} LIMIT 1`;
+    const id = path.split('/')[1], reason = clean(getBody(req).reason,500), rows = await db()`SELECT name,company,location FROM portal_enquiries WHERE id=${id} LIMIT 1`;
+    if (reason.trim().length < 5) return json(res, 400, { error: 'Enter a deletion reason of at least 5 characters.' });
     if (!rows[0]) return json(res, 404, { error: 'Enquiry not found.' });
     const label = [rows[0].name, rows[0].company, rows[0].location].filter(Boolean).join(' · ');
-    const requests = await db()`INSERT INTO portal_delete_requests(record_type,record_id,requester_id,requester_username,record_label,reason) VALUES ('enquiry',${id},${user.sub},${user.username},${label},${clean(getBody(req).reason,500)}) ON CONFLICT (record_type,record_id) WHERE status='pending' DO NOTHING RETURNING id`;
-    return json(res, requests.length ? 201 : 409, requests.length ? { ok: true } : { error: 'A deletion request is already pending for this enquiry.' });
+    const requests = await db()`INSERT INTO portal_delete_requests(record_type,record_id,requester_id,requester_username,record_label,reason) VALUES ('enquiry',${id},${user.sub},${user.username},${label},${reason}) ON CONFLICT (record_type,record_id) WHERE status='pending' DO NOTHING RETURNING id`;
+    return json(res, requests.length ? 201 : 409, requests.length ? { ok: true, id: requests[0].id } : { error: 'A deletion request is already pending for this enquiry.' });
   }
   if (path.startsWith('enquiries/') && method === 'DELETE') {
-    requireManager(user);
-    const id = path.split('/')[1], rows = await db()`DELETE FROM portal_enquiries WHERE id=${id} RETURNING id`;
-    if (rows.length) await db()`UPDATE portal_delete_requests SET status='approved',decided_by=${user.username},updated_at=now() WHERE record_type='enquiry' AND record_id=${id} AND status='pending'`;
-    return json(res, rows.length ? 200 : 404, rows.length ? { ok: true } : { error: 'Enquiry not found.' });
+    return json(res, 405, { error: 'Records can only be deleted when a manager approves an admin deletion request.' });
   }
   if (path === 'applications' && method === 'GET') return json(res, 200, { applications: await db()`SELECT a.id,a.name,a.email,a.phone,a.role,a.message,a.cv_filename,a.status,a.created_at,a.updated_at,EXISTS (SELECT 1 FROM portal_delete_requests r WHERE r.record_type='application' AND r.record_id=a.id AND r.status='pending') AS deletion_requested FROM portal_applications a ORDER BY a.created_at DESC LIMIT 500` });
   if (path.startsWith('applications/') && path.endsWith('/cv') && method === 'GET') {
@@ -372,34 +372,40 @@ async function main(req, res) {
   }
   if (path.startsWith('applications/') && path.endsWith('/status') && method === 'PATCH') {
     requireStaff(user);
-    const id = path.split('/')[1], status = clean(getBody(req).status, 30);
+    const id = path.split('/')[1], body = getBody(req), status = clean(body.status, 30);
     if (!['new','reviewing','shortlisted','rejected','hired'].includes(status)) return json(res, 400, { error: 'Invalid application status.' });
-    const rows = await db()`UPDATE portal_applications SET status=${status},updated_at=now() WHERE id=${id} RETURNING id`;
-    return json(res, rows.length ? 200 : 404, rows.length ? { ok: true } : { error: 'Application not found.' });
+    const rows = body.expectedStatus
+      ? await db()`UPDATE portal_applications SET status=${status},updated_at=now() WHERE id=${id} AND status=${clean(body.expectedStatus,30)} RETURNING id`
+      : await db()`UPDATE portal_applications SET status=${status},updated_at=now() WHERE id=${id} RETURNING id`;
+    return json(res, rows.length ? 200 : body.expectedStatus ? 409 : 404, rows.length ? { ok: true } : { error: body.expectedStatus ? 'The application status changed elsewhere, so this undo was not applied.' : 'Application not found.' });
   }
   if (path.startsWith('applications/') && path.endsWith('/delete-request') && method === 'POST') {
     if (user.role !== 'admin') return json(res, 403, { error: 'Only admins can request deletion.' });
-    const id = path.split('/')[1], rows = await db()`SELECT name,role FROM portal_applications WHERE id=${id} LIMIT 1`;
+    const id = path.split('/')[1], reason = clean(getBody(req).reason,500), rows = await db()`SELECT name,role FROM portal_applications WHERE id=${id} LIMIT 1`;
+    if (reason.trim().length < 5) return json(res, 400, { error: 'Enter a deletion reason of at least 5 characters.' });
     if (!rows[0]) return json(res, 404, { error: 'Application not found.' });
     const label = [rows[0].name, rows[0].role].filter(Boolean).join(' · ');
-    const requests = await db()`INSERT INTO portal_delete_requests(record_type,record_id,requester_id,requester_username,record_label,reason) VALUES ('application',${id},${user.sub},${user.username},${label},${clean(getBody(req).reason,500)}) ON CONFLICT (record_type,record_id) WHERE status='pending' DO NOTHING RETURNING id`;
-    return json(res, requests.length ? 201 : 409, requests.length ? { ok: true } : { error: 'A deletion request is already pending for this application.' });
+    const requests = await db()`INSERT INTO portal_delete_requests(record_type,record_id,requester_id,requester_username,record_label,reason) VALUES ('application',${id},${user.sub},${user.username},${label},${reason}) ON CONFLICT (record_type,record_id) WHERE status='pending' DO NOTHING RETURNING id`;
+    return json(res, requests.length ? 201 : 409, requests.length ? { ok: true, id: requests[0].id } : { error: 'A deletion request is already pending for this application.' });
   }
   if (path.startsWith('applications/') && method === 'DELETE') {
-    requireManager(user);
-    const id = path.split('/')[1], rows = await db()`SELECT cv_pathname FROM portal_applications WHERE id=${id} LIMIT 1`;
-    if (!rows[0]) return json(res, 404, { error: 'Application not found.' });
-    await del(rows[0].cv_pathname);
-    await db()`DELETE FROM portal_applications WHERE id=${id}`;
-    await db()`UPDATE portal_delete_requests SET status='approved',decided_by=${user.username},updated_at=now() WHERE record_type='application' AND record_id=${id} AND status='pending'`;
-    return json(res, 200, { ok: true });
+    return json(res, 405, { error: 'Records can only be deleted when a manager approves an admin deletion request.' });
+  }
+  if (path.startsWith('delete-requests/') && method === 'DELETE') {
+    if (user.role !== 'admin') return json(res, 403, { error: 'Only the requesting admin can cancel a deletion request.' });
+    const id = path.split('/')[1], rows = await db()`DELETE FROM portal_delete_requests WHERE id=${id} AND requester_id=${user.sub} AND status='pending' RETURNING id`;
+    return json(res, rows.length ? 200 : 404, rows.length ? { ok: true } : { error: 'Pending deletion request not found.' });
   }
   if (path.startsWith('delete-requests/') && method === 'PATCH') {
     requireManager(user);
     const id = path.split('/')[1], decision = clean(getBody(req).decision, 20);
-    if (!['approve','reject'].includes(decision)) return json(res, 400, { error: 'Choose approve or reject.' });
+    if (!['approve','reject','undo-reject'].includes(decision)) return json(res, 400, { error: 'Choose approve, reject or undo-reject.' });
     const request = (await db()`SELECT id,record_type,record_id,status FROM portal_delete_requests WHERE id=${id} LIMIT 1`)[0];
     if (!request) return json(res, 404, { error: 'Deletion request not found.' });
+    if (decision === 'undo-reject' && request.status === 'rejected') {
+      await db()`UPDATE portal_delete_requests SET status='pending',decided_by=NULL,updated_at=now() WHERE id=${id} AND status='rejected'`;
+      return json(res, 200, { ok: true });
+    }
     if (request.status !== 'pending') return json(res, 409, { error: 'This deletion request has already been reviewed.' });
     if (decision === 'reject') {
       await db()`UPDATE portal_delete_requests SET status='rejected',decided_by=${user.username},updated_at=now() WHERE id=${id} AND status='pending'`;
