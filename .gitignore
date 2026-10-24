@@ -3,3 +3,7 @@ dist/
 .vercel/
 .env*
 !.env.example
+/.chrome-qa*/
+/client-*.png
+/clients-ar-*.png
+/clients-en-*.png
